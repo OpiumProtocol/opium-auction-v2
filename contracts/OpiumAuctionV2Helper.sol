@@ -7,11 +7,11 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./helpers/NonceManager.sol";
 import "./helpers/Misc.sol";
 
-import "./LinearAuction.sol";
+import "./ExponentialAuction.sol";
 
 import "hardhat/console.sol";
 
-contract OpiumAuctionV2Helper is LinearAuction, NonceManager, Misc {
+contract OpiumAuctionV2Helper is ExponentialAuction, NonceManager, Misc {
   using SafeERC20 for IERC20;
 
   uint256 constant public FEE_BASE = 100_000;

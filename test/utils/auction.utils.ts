@@ -38,6 +38,40 @@ const generateGetAmountLinear = (
   return calldataTwo.substring(0, calldataTwo.length - 120)
 }
 
+const generateGetAmountExponential = (
+  method: "getExponentialAuctionTakerAmount" | "getExponentialAuctionMakerAmount",
+  helperAddress: string,
+  orderMakerAmount: BigNumberish,
+  orderTakerAmount: BigNumberish,
+  thresholdOrderTakerAmount: BigNumberish,
+  startedAt: BigNumberish,
+  endedAt: BigNumberish,
+  increasing: boolean,
+  amplifier: number
+) => {
+  // Generate calldata for the function
+  const calldataOne = OpiumAuctionV2Helper__factory.createInterface().encodeFunctionData(
+    method as never,
+    [
+      orderMakerAmount,
+      orderTakerAmount,
+      thresholdOrderTakerAmount,
+      startedAt,
+      endedAt,
+      increasing,
+      amplifier,
+      0 // Will be removed from calldata
+    ]
+  );
+
+  const calldataTwo = OpiumAuctionV2Helper__factory.createInterface().encodeFunctionData(
+    "arbitraryStaticCall",
+    [helperAddress, calldataOne]
+  )
+
+  return calldataTwo.substring(0, calldataTwo.length - 120)
+}
+
 /** General */
 const generatePredicate = (helperAddress: string, makerAddress: string, nonce: number, timestamp: number) => {
   return OpiumAuctionV2Helper__factory.createInterface().encodeFunctionData("and", [
@@ -51,7 +85,8 @@ const generatePredicate = (helperAddress: string, makerAddress: string, nonce: n
 
 /** External */
 export enum AuctionPricingFunction {
-  LINEAR = 'LINEAR'
+  LINEAR = 'LINEAR',
+  EXPONENTIAL = 'EXPONENTIAL'
 }
 
 export enum AuctionPricingDirection {
@@ -76,7 +111,8 @@ export const buildAuctionOrder = (
     minTakerAmount: string,
     maxTakerAmount: string,
     startedAt: number,
-    endedAt: number
+    endedAt: number,
+    amplifier?: number
   }
 ) => {
   const makerLimitOrder = limitOrderBuilder.buildLimitOrder({
@@ -108,6 +144,29 @@ export const buildAuctionOrder = (
       auction.startedAt,
       auction.endedAt,
       auction.pricingDirection === AuctionPricingDirection.INCREASING
+    )
+  } else if (auction.pricingFunction === AuctionPricingFunction.EXPONENTIAL) {
+    makerLimitOrder.getTakerAmount = generateGetAmountExponential(
+      "getExponentialAuctionTakerAmount",
+      helperAddress,
+      order.makerAmount,
+      auction.maxTakerAmount,
+      auction.minTakerAmount,
+      auction.startedAt,
+      auction.endedAt,
+      auction.pricingDirection === AuctionPricingDirection.INCREASING,
+      auction.amplifier ?? 1
+    )
+    makerLimitOrder.getMakerAmount = generateGetAmountExponential(
+      "getExponentialAuctionMakerAmount",
+      helperAddress,
+      order.makerAmount,
+      auction.maxTakerAmount,
+      auction.minTakerAmount,
+      auction.startedAt,
+      auction.endedAt,
+      auction.pricingDirection === AuctionPricingDirection.INCREASING,
+      auction.amplifier ?? 1
     )
   } else {
     throw new Error('Unsupported pricing function')
