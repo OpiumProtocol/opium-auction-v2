@@ -1,5 +1,9 @@
+import * as dotenv from "dotenv";
+
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+
+dotenv.config();
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -17,6 +21,10 @@ const config: HardhatUserConfig = {
         url: "https://polygon-rpc.com",
       },
       chainId: 137,
+    },
+    polygon: {
+      url: "https://polygon-rpc.com",
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
 };

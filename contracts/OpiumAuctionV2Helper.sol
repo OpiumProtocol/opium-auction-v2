@@ -9,8 +9,6 @@ import "./helpers/Misc.sol";
 
 import "./ExponentialAuction.sol";
 
-import "hardhat/console.sol";
-
 contract OpiumAuctionV2Helper is ExponentialAuction, NonceManager, Misc {
   using SafeERC20 for IERC20;
 
