@@ -56,10 +56,13 @@ async function main() {
   const limitOrderTypedData = limitOrderBuilder.buildLimitOrderTypedData(limitOrder);
   const limitOrderSignature = await limitOrderBuilder.buildOrderSignature(DEPLOYER, limitOrderTypedData);
   
-  console.log({
-    limitOrder,
-    limitOrderSignature
-  })
+  console.log(JSON.stringify(
+    {
+      limitOrder,
+      limitOrderSignature
+    },
+    null, 2
+  ))
 }
 
 // We recommend this pattern to be able to use async/await everywhere

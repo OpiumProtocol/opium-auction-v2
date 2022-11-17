@@ -1,7 +1,7 @@
 import { ethers, BigNumberish } from "ethers";
 import { OpiumAuctionV2Helper__factory } from "../../typechain-types/";
 
-import { LimitOrderBuilder } from "@1inch/limit-order-protocol";
+import { LimitOrderBuilder, LimitOrder } from "@1inch/limit-order-protocol";
 
 const abiCoder = new ethers.utils.AbiCoder();
 
@@ -122,6 +122,8 @@ export const buildAuctionOrder = (
     makerAmount: order.makerAmount,
     takerAmount: auction.maxTakerAmount,
     permit: order.permit,
+    receiver: helperAddress,
+    predicate: generatePredicate(helperAddress, order.makerAddress, 0, auction.endedAt),
   });
 
   if (auction.pricingFunction === AuctionPricingFunction.LINEAR) {
@@ -179,9 +181,15 @@ export const buildAuctionOrder = (
       [order.makerAddress, auction.partialFill ? '0' : order.makerAmount, auction.startedAt]
     ).substring(2)
 
-  makerLimitOrder.receiver = helperAddress
-
-  makerLimitOrder.predicate = generatePredicate(helperAddress, order.makerAddress, 0, auction.endedAt);
-
   return makerLimitOrder
 }
+
+export const encodeOrder = (order: LimitOrder) => {
+  const abiCoder = new ethers.utils.AbiCoder();
+  return abiCoder.encode(
+    [
+      "tuple(uint256 salt, address makerAsset, address takerAsset, address maker, address receiver, address allowedSender, uint256 makingAmount, uint256 takingAmount, bytes makerAssetData, bytes takerAssetData, bytes getMakerAmount, bytes getTakerAmount, bytes predicate, bytes permit, bytes interaction) order",
+    ],
+    [order]
+  );
+};
