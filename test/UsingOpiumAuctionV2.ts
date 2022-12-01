@@ -36,6 +36,8 @@ const DECREASING = false
 
 const FEE_BASE = 100_000
 
+const SALT = "1337"
+
 describe("UsingOpiumAuctionV2", function () {
   async function prepare() {
     const [ owner, random, taker, feesReceiver ] = await ethers.getSigners();
@@ -46,7 +48,7 @@ describe("UsingOpiumAuctionV2", function () {
       LIMIT_ORDER_PROTOCOL_ADDRESS,
       CHAIN_ID,
       randomProviderConnector,
-      () => "1337" // Hardcoded orders salt
+      () => SALT // Hardcoded orders salt
     );
 
     // Mocks
@@ -100,14 +102,15 @@ describe("UsingOpiumAuctionV2", function () {
       sellingToken: weth.address,
       purchasingToken: usdc.address,
       sellingAmount: ETH_1.toString(),
-      pricingFunction: 0, // LINEAR
+      pricingFunction: AuctionPricingFunction.LINEAR,
       pricingFunctionParams: [],
-      pricingDirection: 1, // DECREASING
+      pricingDirection: AuctionPricingDirection.DECREASING,
       partialFill: true,
       minPurchasingAmount: USDC_1500.toString(),
       maxPurchasingAmount: USDC_3000.toString(),
       startedAt,
-      endedAt
+      endedAt,
+      salt: SALT
     });
     const makerLimitOrder = buildAuctionOrder(
       helper.address,

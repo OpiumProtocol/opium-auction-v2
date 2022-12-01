@@ -1,9 +1,20 @@
 import { ethers, BigNumberish } from "ethers";
-import { OpiumAuctionV2Helper__factory } from "../../typechain-types/";
 
 import { LimitOrderBuilder, LimitOrder } from "@1inch/limit-order-protocol";
 
 const abiCoder = new ethers.utils.AbiCoder();
+
+const ABI = [
+  'function getLinearAuctionMakerAmount(uint256,uint256,uint256,uint256,uint256,bool,uint256)',
+  'function getLinearAuctionTakerAmount(uint256,uint256,uint256,uint256,uint256,bool,uint256)',
+  'function getExponentialAuctionMakerAmount(uint256,uint256,uint256,uint256,uint256,bool,uint256,uint256)',
+  'function getExponentialAuctionTakerAmount(uint256,uint256,uint256,uint256,uint256,bool,uint256,uint256)',
+  'function arbitraryStaticCall(address,bytes)',
+  'function and(address[],bytes[])',
+  'function nonceEquals(address,uint256)',
+  'function timestampBelow(uint256)',
+];
+const contractInterface = new ethers.utils.Interface(ABI);
 
 /** Linear Auction */
 const generateGetAmountLinear = (
@@ -17,7 +28,7 @@ const generateGetAmountLinear = (
   increasing: boolean
 ) => {
   // Generate calldata for the function
-  const calldataOne = OpiumAuctionV2Helper__factory.createInterface().encodeFunctionData(
+  const calldataOne = contractInterface.encodeFunctionData(
     method as never,
     [
       orderMakerAmount,
@@ -30,7 +41,7 @@ const generateGetAmountLinear = (
     ]
   );
 
-  const calldataTwo = OpiumAuctionV2Helper__factory.createInterface().encodeFunctionData(
+  const calldataTwo = contractInterface.encodeFunctionData(
     "arbitraryStaticCall",
     [helperAddress, calldataOne]
   )
@@ -50,7 +61,7 @@ const generateGetAmountExponential = (
   amplifier: number
 ) => {
   // Generate calldata for the function
-  const calldataOne = OpiumAuctionV2Helper__factory.createInterface().encodeFunctionData(
+  const calldataOne = contractInterface.encodeFunctionData(
     method as never,
     [
       orderMakerAmount,
@@ -64,7 +75,7 @@ const generateGetAmountExponential = (
     ]
   );
 
-  const calldataTwo = OpiumAuctionV2Helper__factory.createInterface().encodeFunctionData(
+  const calldataTwo = contractInterface.encodeFunctionData(
     "arbitraryStaticCall",
     [helperAddress, calldataOne]
   )
@@ -74,24 +85,24 @@ const generateGetAmountExponential = (
 
 /** General */
 const generatePredicate = (helperAddress: string, makerAddress: string, nonce: number, timestamp: number) => {
-  return OpiumAuctionV2Helper__factory.createInterface().encodeFunctionData("and", [
+  return contractInterface.encodeFunctionData("and", [
     [ helperAddress, helperAddress ],
     [
-      OpiumAuctionV2Helper__factory.createInterface().encodeFunctionData("nonceEquals", [makerAddress, nonce]),
-      OpiumAuctionV2Helper__factory.createInterface().encodeFunctionData("timestampBelow", [timestamp])
+      contractInterface.encodeFunctionData("nonceEquals", [makerAddress, nonce]),
+      contractInterface.encodeFunctionData("timestampBelow", [timestamp])
     ]
   ])
 }
 
 /** External */
 export enum AuctionPricingFunction {
-  LINEAR = 'LINEAR',
-  EXPONENTIAL = 'EXPONENTIAL'
+  LINEAR,
+  EXPONENTIAL
 }
 
 export enum AuctionPricingDirection {
-  INCREASING = 'INCREASING',
-  DECREASING = 'DECREASING'
+  INCREASING,
+  DECREASING
 }
 
 export const buildAuctionOrder = (

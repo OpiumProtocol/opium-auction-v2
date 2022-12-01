@@ -1,51 +1,210 @@
-// SPDX-License-Identifier: agpl-3.0
+//SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../helpers/Types.sol";
-import "../helpers/EIP712Alien.sol";
+import "./UsingLimitOrderProtocolV2.sol";
 
-abstract contract UsingOpiumAuctionV2 is IERC1271, EIP712Alien {
-  bytes32 constant private _LIMIT_ORDER_TYPEHASH = keccak256(
-    "Order(uint256 salt,address makerAsset,address takerAsset,address maker,address receiver,address allowedSender,uint256 makingAmount,uint256 takingAmount,bytes makerAssetData,bytes takerAssetData,bytes getMakerAmount,bytes getTakerAmount,bytes predicate,bytes permit,bytes interaction)"
-  );
+abstract contract UsingOpiumAuctionV2 is UsingLimitOrderProtocolV2 {
+  address public immutable auctionHelperContract;
 
-  constructor(address limitOrderProtocol_) EIP712Alien(limitOrderProtocol_, "1inch Limit Order Protocol", "2") {}
-
-  function isValidSignature(bytes32 hash, bytes memory signature) public view returns(bytes4) {
-    Types.Order memory order = abi.decode(signature, (Types.Order));
-
-    require(
-      _hash(order) == hash &&
-      _isValidOrder(order),
-      "PurchaseProxy: Invalid order hash"
-    );
-
-    return this.isValidSignature.selector;
+  // Auction data
+  enum PricingFunction {
+    LINEAR,
+    EXPONENTIAL
   }
 
-  function _isValidOrder(Types.Order memory order_) internal view virtual returns (bool);
+  enum PricingDirection {
+    INCREASING,
+    DECREASING
+  }
+  
+  struct AuctionOrder {
+    IERC20 sellingToken;
+    IERC20 purchasingToken;
+    uint256 sellingAmount;
+    PricingFunction pricingFunction;
+    uint256[] pricingFunctionParams;
+    PricingDirection pricingDirection;
+    bool partialFill;
+    uint256 minPurchasingAmount;
+    uint256 maxPurchasingAmount;
+    uint256 startedAt;
+    uint256 endedAt;
+    uint256 salt;
+  }
 
-  function _hash(Types.Order memory order) internal view returns(bytes32) {
-    Types.StaticOrder memory staticOrder;
-    assembly {  // solhint-disable-line no-inline-assembly
-      staticOrder := order
-    }
-    return _hashTypedDataV4(
-      keccak256(
-        abi.encode(
-          _LIMIT_ORDER_TYPEHASH,
-          staticOrder,
-          keccak256(order.makerAssetData),
-          keccak256(order.takerAssetData),
-          keccak256(order.getMakerAmount),
-          keccak256(order.getTakerAmount),
-          keccak256(order.predicate),
-          keccak256(order.permit),
-          keccak256(order.interaction)
-        )
-      )
+  constructor(
+    address auctionHelperContract_,
+    address limitOrderProtocol_
+  ) UsingLimitOrderProtocolV2(limitOrderProtocol_) {
+    auctionHelperContract = auctionHelperContract_;
+  }
+
+  function auctionToLimitOrder(
+    AuctionOrder memory auctionOrder_
+  ) public view returns (Types.Order memory order) {
+    order.salt = auctionOrder_.salt;
+    order.makerAsset = address(auctionOrder_.sellingToken);
+    order.takerAsset = address(auctionOrder_.purchasingToken);
+    order.maker = address(this);
+    order.receiver = auctionHelperContract;
+    order.allowedSender = address(0x0000000000000000000000000000000000000000);
+    order.makingAmount = auctionOrder_.sellingAmount;
+    order.takingAmount = auctionOrder_.maxPurchasingAmount;
+    // Omit: order.makerAssetData;
+    // Omit: order.takerAssetData;
+    order.getMakerAmount = _prepareGetMakerAmount(auctionOrder_);
+    order.getTakerAmount = _prepareGetTakerAmount(auctionOrder_);
+    order.predicate = _preparePredicate(auctionOrder_);
+    // Omit: order.permit;
+    order.interaction = _prepareInteraction(auctionOrder_);
+  }
+
+  function _prepareGetMakerAmount(AuctionOrder memory auctionOrder_) internal view returns (bytes memory getMakerAmount) {
+    getMakerAmount = 
+      auctionOrder_.pricingFunction == PricingFunction.LINEAR
+        ? abi.encodeWithSignature(
+            "getLinearAuctionMakerAmount(uint256,uint256,uint256,uint256,uint256,bool,uint256)",
+            auctionOrder_.sellingAmount,
+            auctionOrder_.maxPurchasingAmount,
+            auctionOrder_.minPurchasingAmount,
+            auctionOrder_.startedAt, 
+            auctionOrder_.endedAt,
+            auctionOrder_.pricingDirection == PricingDirection.INCREASING,
+            0
+          )
+        : abi.encodeWithSignature(
+            "getExponentialAuctionMakerAmount(uint256,uint256,uint256,uint256,uint256,bool,uint256,uint256)",
+            auctionOrder_.sellingAmount,
+            auctionOrder_.maxPurchasingAmount,
+            auctionOrder_.minPurchasingAmount,
+            auctionOrder_.startedAt, 
+            auctionOrder_.endedAt,
+            auctionOrder_.pricingDirection == PricingDirection.INCREASING,
+            auctionOrder_.pricingFunctionParams[0],
+            0
+          );
+
+    getMakerAmount = abi.encodeWithSignature("arbitraryStaticCall(address,bytes)", auctionHelperContract, getMakerAmount);
+    
+    getMakerAmount = _slice(getMakerAmount, 0, getMakerAmount.length - 60);
+  }
+
+  function _prepareGetTakerAmount(AuctionOrder memory auctionOrder_) internal view returns (bytes memory getTakerAmount) {
+    getTakerAmount = 
+      auctionOrder_.pricingFunction == PricingFunction.LINEAR
+        ? abi.encodeWithSignature(
+            "getLinearAuctionTakerAmount(uint256,uint256,uint256,uint256,uint256,bool,uint256)",
+            auctionOrder_.sellingAmount,
+            auctionOrder_.maxPurchasingAmount,
+            auctionOrder_.minPurchasingAmount,
+            auctionOrder_.startedAt, 
+            auctionOrder_.endedAt,
+            auctionOrder_.pricingDirection == PricingDirection.INCREASING,
+            0
+          )
+        : abi.encodeWithSignature(
+            "getExponentialAuctionTakerAmount(uint256,uint256,uint256,uint256,uint256,bool,uint256,uint256)",
+            auctionOrder_.sellingAmount,
+            auctionOrder_.maxPurchasingAmount,
+            auctionOrder_.minPurchasingAmount,
+            auctionOrder_.startedAt, 
+            auctionOrder_.endedAt,
+            auctionOrder_.pricingDirection == PricingDirection.INCREASING,
+            auctionOrder_.pricingFunctionParams[0],
+            0
+          );
+
+    getTakerAmount = abi.encodeWithSignature("arbitraryStaticCall(address,bytes)", auctionHelperContract, getTakerAmount);
+
+    getTakerAmount = _slice(getTakerAmount, 0, getTakerAmount.length - 60);
+  }
+
+  function _preparePredicate(AuctionOrder memory auctionOrder_) internal view returns (bytes memory predicate) {
+    address[] memory addressArgs = new address[](2);
+    addressArgs[0] = auctionHelperContract;
+    addressArgs[1] = auctionHelperContract;
+
+    bytes[] memory bytesArgs = new bytes[](2);
+    bytesArgs[0] = abi.encodeWithSignature("nonceEquals(address,uint256)", address(this), 0);
+    bytesArgs[1] = abi.encodeWithSignature("timestampBelow(uint256)", auctionOrder_.endedAt);
+
+    predicate = abi.encodeWithSignature("and(address[],bytes[])", addressArgs, bytesArgs);
+  }
+
+  function _prepareInteraction(AuctionOrder memory auctionOrder_) internal view returns (bytes memory interaction) {
+    bytes memory interactionData = abi.encode(
+      address(this),
+      !auctionOrder_.partialFill ? auctionOrder_.sellingAmount : 0,
+      auctionOrder_.startedAt
     );
+
+    interaction = abi.encodePacked(auctionHelperContract, interactionData);
+  }
+
+  function _slice(
+    bytes memory _bytes,
+    uint256 _start,
+    uint256 _length
+  ) internal pure returns (bytes memory) {
+    require(_length + 31 >= _length, "slice_overflow");
+    require(_bytes.length >= _start + _length, "slice_outOfBounds");
+
+    bytes memory tempBytes;
+
+    assembly {
+      switch iszero(_length)
+      case 0 {
+        // Get a location of some free memory and store it in tempBytes as
+        // Solidity does for memory variables.
+        tempBytes := mload(0x40)
+
+        // The first word of the slice result is potentially a partial
+        // word read from the original array. To read it, we calculate
+        // the length of that partial word and start copying that many
+        // bytes into the array. The first word we copy will start with
+        // data we don't care about, but the last `lengthmod` bytes will
+        // land at the beginning of the contents of the new array. When
+        // we're done copying, we overwrite the full first word with
+        // the actual length of the slice.
+        let lengthmod := and(_length, 31)
+
+        // The multiplication in the next line is necessary
+        // because when slicing multiples of 32 bytes (lengthmod == 0)
+        // the following copy loop was copying the origin's length
+        // and then ending prematurely not copying everything it should.
+        let mc := add(add(tempBytes, lengthmod), mul(0x20, iszero(lengthmod)))
+        let end := add(mc, _length)
+
+        for {
+          // The multiplication in the next line has the same exact purpose
+          // as the one above.
+          let cc := add(add(add(_bytes, lengthmod), mul(0x20, iszero(lengthmod))), _start)
+        } lt(mc, end) {
+          mc := add(mc, 0x20)
+          cc := add(cc, 0x20)
+        } {
+          mstore(mc, mload(cc))
+        }
+
+        mstore(tempBytes, _length)
+
+        //update free-memory pointer
+        //allocating the array padded to 32 bytes like the compiler does now
+        mstore(0x40, and(add(mc, 31), not(31)))
+      }
+      //if we want a zero-length slice let's just return a zero-length array
+      default {
+        tempBytes := mload(0x40)
+        //zero out the 32 bytes slice we are about to return
+        //we need to do it because Solidity does not garbage collect
+        mstore(tempBytes, 0)
+
+        mstore(0x40, add(tempBytes, 0x20))
+      }
+    }
+
+    return tempBytes;
   }
 }
