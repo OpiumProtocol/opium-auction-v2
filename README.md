@@ -1,13 +1,15 @@
-# Sample Hardhat Project
+# Opium Auction V2 Smart Contracts
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+## About
 
-Try running some of the following tasks:
+Opium Auction V2 is Auction Protocol built on top of [1inch Limit Order Protocol V2](https://github.com/1inch/limit-order-protocol) that enriches it's functionality.
 
-```shell
-npx hardhat help
-npx hardhat test
-GAS_REPORT=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
-```
+## Features
+
+- Chain agnostic
+- Dynamic pricing function (linear, exponential)
+- Pricing function direction (decreasing, increasing)
+- Time limits (select start and end of the auctions)
+- Partial fills (enable / disable)
+- Custom nonce (cancel auction orders independently from `1inch` orders)
+- Trading fees
