@@ -1,6 +1,11 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import {
+  buildAuctionOrder,
+  AuctionPricingFunction,
+  AuctionPricingDirection,
+} from '@opiumteam/opium-auction-v2-utils';
 
 import {
   LimitOrderBuilder,
@@ -8,12 +13,6 @@ import {
 } from "@1inch/limit-order-protocol";
 
 import { EthersProviderConnector } from "./utils/ethers-provider.connector";
-
-import {
-  buildAuctionOrder,
-  AuctionPricingFunction,
-  AuctionPricingDirection,
-} from './utils/auction.utils';
 
 // 1inch constants
 const CHAIN_ID = 137;
