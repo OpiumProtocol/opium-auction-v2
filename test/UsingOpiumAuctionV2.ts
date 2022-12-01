@@ -16,9 +16,9 @@ import {
 import { EthersProviderConnector } from "./utils/ethers-provider.connector";
 
 // 1inch constants
-const CHAIN_ID = 137;
+const CHAIN_ID = 42161;
 const LIMIT_ORDER_PROTOCOL_ADDRESS =
-  "0x94bc2a1c732bcad7343b25af48385fe76e08734f";
+  "0x7f069df72b7a39bce9806e3afaf579e54d8cf2b9";
 
 // Test constants
 const ETH_1 = ethers.utils.parseUnits("1", 18)

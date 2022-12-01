@@ -18,9 +18,9 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: "https://polygon-rpc.com",
+        url: "https://rpc.ankr.com/arbitrum	",
       },
-      chainId: 137,
+      chainId: 42161,
     },
     polygon: {
       url: "https://polygon-rpc.com",
