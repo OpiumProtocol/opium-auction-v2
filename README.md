@@ -13,3 +13,7 @@ Opium Auction V2 is Auction Protocol built on top of [1inch Limit Order Protocol
 - Partial fills (enable / disable)
 - Custom nonce (cancel auction orders independently from `1inch` orders)
 - Trading fees
+
+## Utils
+
+Utilities that can help to create, sign, cancel orders is available as JS library [https://github.com/OpiumProtocol/opium-auction-v2-utils](https://github.com/OpiumProtocol/opium-auction-v2-utils)
