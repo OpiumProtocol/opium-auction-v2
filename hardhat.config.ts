@@ -18,12 +18,16 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: "https://rpc.ankr.com/arbitrum	",
+        url: "https://rpc.ankr.com/arbitrum",
       },
       chainId: 42161,
     },
     polygon: {
       url: "https://polygon-rpc.com",
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    arbitrum: {
+      url: "https://arb1.arbitrum.io/rpc",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },

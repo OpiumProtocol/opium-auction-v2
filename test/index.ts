@@ -1,18 +1,18 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { VoidSigner } from "ethers";
 import {
   buildAuctionOrder,
   AuctionPricingFunction,
   AuctionPricingDirection,
+  EthersProviderConnector
 } from '@opiumteam/opium-auction-v2-utils';
 
 import {
   LimitOrderBuilder,
   LimitOrderProtocolFacade,
 } from "@1inch/limit-order-protocol";
-
-import { EthersProviderConnector } from "./utils/ethers-provider.connector";
 
 // 1inch constants
 const CHAIN_ID = 42161;
@@ -39,7 +39,7 @@ describe("Opium Auction V2", function () {
     const [ owner, maker, taker, feesReceiver ] = await ethers.getSigners();
 
     // Signers preparation
-    const makerProviderConnector = new EthersProviderConnector(maker);
+    const makerProviderConnector = new EthersProviderConnector(maker as unknown as VoidSigner);
     const makerLimitOrderBuilder = new LimitOrderBuilder(
       LIMIT_ORDER_PROTOCOL_ADDRESS,
       CHAIN_ID,
@@ -55,7 +55,7 @@ describe("Opium Auction V2", function () {
     await usdc.transfer(taker.address, USDC_3000);
 
     // Limit Order Protocol
-    const takerProviderConnector = new EthersProviderConnector(taker);
+    const takerProviderConnector = new EthersProviderConnector(maker as unknown as VoidSigner);
     const takerLimitOrderProtocolFacade = new LimitOrderProtocolFacade(
       LIMIT_ORDER_PROTOCOL_ADDRESS,
       takerProviderConnector
