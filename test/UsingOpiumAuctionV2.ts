@@ -7,7 +7,7 @@ import {
   encodeOrder,
   AuctionPricingFunction,
   AuctionPricingDirection,
-  EthersProviderConnector,
+  EthersSignerConnector,
 } from '@opiumteam/opium-auction-v2-utils';
 
 import {
@@ -42,7 +42,7 @@ describe("UsingOpiumAuctionV2", function () {
     const [ owner, random, taker, feesReceiver ] = await ethers.getSigners();
 
     // Signers preparation
-    const randomProviderConnector = new EthersProviderConnector(random as unknown as VoidSigner);
+    const randomProviderConnector = new EthersSignerConnector(random as unknown as VoidSigner);
     const randomLimitOrderBuilder = new LimitOrderBuilder(
       LIMIT_ORDER_PROTOCOL_ADDRESS,
       CHAIN_ID,
@@ -56,7 +56,7 @@ describe("UsingOpiumAuctionV2", function () {
     const usdc = await MockToken.deploy("USDC", "USDC", 6);
 
     // Limit Order Protocol
-    const takerProviderConnector = new EthersProviderConnector(taker as unknown as VoidSigner);
+    const takerProviderConnector = new EthersSignerConnector(taker as unknown as VoidSigner);
     const takerLimitOrderProtocolFacade = new LimitOrderProtocolFacade(
       LIMIT_ORDER_PROTOCOL_ADDRESS,
       takerProviderConnector
@@ -119,6 +119,7 @@ describe("UsingOpiumAuctionV2", function () {
         takerAssetAddress: usdc.address,
         makerAddress: usingContract.address,
         makerAmount: ETH_1.toString(),
+        nonce: 0
       },
       {
         pricingFunction: AuctionPricingFunction.LINEAR,

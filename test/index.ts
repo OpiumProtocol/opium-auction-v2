@@ -6,7 +6,7 @@ import {
   buildAuctionOrder,
   AuctionPricingFunction,
   AuctionPricingDirection,
-  EthersProviderConnector
+  EthersSignerConnector
 } from '@opiumteam/opium-auction-v2-utils';
 
 import {
@@ -39,7 +39,7 @@ describe("Opium Auction V2", function () {
     const [ owner, maker, taker, feesReceiver ] = await ethers.getSigners();
 
     // Signers preparation
-    const makerProviderConnector = new EthersProviderConnector(maker as unknown as VoidSigner);
+    const makerProviderConnector = new EthersSignerConnector(maker as unknown as VoidSigner);
     const makerLimitOrderBuilder = new LimitOrderBuilder(
       LIMIT_ORDER_PROTOCOL_ADDRESS,
       CHAIN_ID,
@@ -55,7 +55,7 @@ describe("Opium Auction V2", function () {
     await usdc.transfer(taker.address, USDC_3000);
 
     // Limit Order Protocol
-    const takerProviderConnector = new EthersProviderConnector(maker as unknown as VoidSigner);
+    const takerProviderConnector = new EthersSignerConnector(maker as unknown as VoidSigner);
     const takerLimitOrderProtocolFacade = new LimitOrderProtocolFacade(
       LIMIT_ORDER_PROTOCOL_ADDRESS,
       takerProviderConnector
@@ -136,6 +136,7 @@ describe("Opium Auction V2", function () {
         takerAssetAddress: usdc.address,
         makerAddress: maker.address,
         makerAmount: ETH_1.toString(),
+        nonce: 0
       },
       {
         pricingFunction: AuctionPricingFunction.LINEAR,
@@ -203,6 +204,7 @@ describe("Opium Auction V2", function () {
         takerAssetAddress: usdc.address,
         makerAddress: maker.address,
         makerAmount: ETH_1.toString(),
+        nonce: 0
       },
       {
         pricingFunction: AuctionPricingFunction.LINEAR,
@@ -270,6 +272,7 @@ describe("Opium Auction V2", function () {
         takerAssetAddress: usdc.address,
         makerAddress: maker.address,
         makerAmount: ETH_1.toString(),
+        nonce: 0
       },
       {
         pricingFunction: AuctionPricingFunction.LINEAR,
@@ -337,6 +340,7 @@ describe("Opium Auction V2", function () {
         takerAssetAddress: usdc.address,
         makerAddress: maker.address,
         makerAmount: ETH_1.toString(),
+        nonce: 0
       },
       {
         pricingFunction: AuctionPricingFunction.LINEAR,

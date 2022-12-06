@@ -20,7 +20,7 @@ contract MockUsingOpiumAuctionV2 is UsingOpiumAuctionV2 {
   }
 
   function _isValidOrder(Types.Order memory order_) internal view override returns (bool) {
-    Types.Order memory realOrder = auctionToLimitOrder(auctionOrder, address(this));
+    Types.Order memory realOrder = auctionToLimitOrder(auctionOrder, address(this), 0);
 
     return hashOrder(realOrder) == hashOrder(order_);
   }

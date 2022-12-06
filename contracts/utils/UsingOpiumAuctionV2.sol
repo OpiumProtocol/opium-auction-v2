@@ -43,7 +43,8 @@ abstract contract UsingOpiumAuctionV2 is UsingLimitOrderProtocolV2 {
 
   function auctionToLimitOrder(
     AuctionOrder memory auctionOrder_,
-    address maker_
+    address maker_,
+    uint256 nonce_
   ) public view returns (Types.Order memory order) {
     order.salt = auctionOrder_.salt;
     order.makerAsset = address(auctionOrder_.sellingToken);
@@ -57,7 +58,7 @@ abstract contract UsingOpiumAuctionV2 is UsingLimitOrderProtocolV2 {
     // Omit: order.takerAssetData;
     order.getMakerAmount = _prepareGetMakerAmount(auctionOrder_);
     order.getTakerAmount = _prepareGetTakerAmount(auctionOrder_);
-    order.predicate = _preparePredicate(auctionOrder_, maker_);
+    order.predicate = _preparePredicate(auctionOrder_, maker_, nonce_);
     // Omit: order.permit;
     order.interaction = _prepareInteraction(auctionOrder_, maker_);
   }
@@ -124,14 +125,15 @@ abstract contract UsingOpiumAuctionV2 is UsingLimitOrderProtocolV2 {
 
   function _preparePredicate(
     AuctionOrder memory auctionOrder_,
-    address maker_
+    address maker_,
+    uint256 nonce_
   ) internal view returns (bytes memory predicate) {
     address[] memory addressArgs = new address[](2);
     addressArgs[0] = auctionHelperContract;
     addressArgs[1] = auctionHelperContract;
 
     bytes[] memory bytesArgs = new bytes[](2);
-    bytesArgs[0] = abi.encodeWithSignature("nonceEquals(address,uint256)", maker_, 0);
+    bytesArgs[0] = abi.encodeWithSignature("nonceEquals(address,uint256)", maker_, nonce_);
     bytesArgs[1] = abi.encodeWithSignature("timestampBelow(uint256)", auctionOrder_.endedAt);
 
     predicate = abi.encodeWithSignature("and(address[],bytes[])", addressArgs, bytesArgs);
