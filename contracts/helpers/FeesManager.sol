@@ -3,11 +3,12 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./Misc.sol";
 
 /// @title A helper contract for managing fees
-contract FeesManager is Misc {
+contract FeesManager is Misc, Ownable {
   using SafeERC20 for IERC20;
 
   uint256 constant public FEE_BASE = 100_000;
@@ -54,5 +55,13 @@ contract FeesManager is Misc {
     if (fees != 0) {
       IERC20(takerAsset).safeTransfer(feesReceiver, fees);
     }
+  }
+
+  function setFeeReceiver(address feesReceiver_) external onlyOwner {
+    feesReceiver = feesReceiver_;
+  }
+
+  function setFee(uint256 fee_) external onlyOwner {
+    fee = fee_;
   }
 }
